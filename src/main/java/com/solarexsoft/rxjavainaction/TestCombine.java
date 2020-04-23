@@ -1,10 +1,15 @@
 package com.solarexsoft.rxjavainaction;
 
-import io.reactivex.Single;
+import io.reactivex.*;
 import io.reactivex.disposables.Disposable;
 import io.reactivex.functions.BiFunction;
 import io.reactivex.functions.Consumer;
+import io.reactivex.functions.Function;
+import io.reactivex.schedulers.Schedulers;
 
+import java.io.File;
+import java.util.Arrays;
+import java.util.Objects;
 import java.util.concurrent.TimeUnit;
 
 /**
@@ -35,7 +40,7 @@ public class TestCombine {
                 System.out.println("second subscribe thread = " + Thread.currentThread().getName() + ",now = " + System.currentTimeMillis());
             }
         }).delay(2000, TimeUnit.MILLISECONDS);
-        Single.zip(first, second, new BiFunction<Integer, Object, Integer>() {
+        Disposable disposable1 = Single.zip(first, second, new BiFunction<Integer, Object, Integer>() {
 
             @Override
             public Integer apply(Integer integer, Object o) throws Exception {
@@ -58,5 +63,31 @@ public class TestCombine {
         } catch (InterruptedException e) {
             e.printStackTrace();
         }
+        Disposable disposable2 = Observable.create(new ObservableOnSubscribe<String>() {
+            @Override
+            public void subscribe(ObservableEmitter<String> emitter) throws Exception {
+                emitter.onNext("/Users/ruhouhou/wumii/AndroidAthena");
+            }
+        }).flatMap(new Function<String, ObservableSource<String>>() {
+            @Override
+            public ObservableSource<String> apply(String s) throws Exception {
+                return Observable.fromArray(Objects.requireNonNull(new File(s).listFiles())).map(new Function<File, String>() {
+                    @Override
+                    public String apply(File file) throws Exception {
+                        return file.getAbsolutePath();
+                    }
+                });
+            }
+        }).subscribe(new Consumer<String>() {
+            @Override
+            public void accept(String file) throws Exception {
+                System.out.println(file);
+            }
+        }, new Consumer<Throwable>() {
+            @Override
+            public void accept(Throwable throwable) throws Exception {
+                throwable.printStackTrace();
+            }
+        });
     }
 }
